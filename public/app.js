@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadData();
   setupEventListeners();
   setupSlackSimulator();
+  setupWebSignListeners();
 });
 
 // Navigation Setup
@@ -173,9 +174,13 @@ function renderDashboard() {
     else if (act.status.includes('Awaiting') || act.status.includes('Pending')) badgeClass = 'badge-pending';
     else if (act.status.includes('Rejected')) badgeClass = 'badge-rejected';
 
-    const advanceText = act.advanceRequired 
+    const advanceText = act.advanceRequired
       ? (act.advance ? `${act.advance.totalRequested.toLocaleString()} TZS` : 'Yes (Pending Form)')
       : 'No (Direct Retirement)';
+
+    const signOffBtn = act.status === 'Awaiting LRF Approval'
+      ? `<button class="btn btn-primary btn-sm" onclick="openWebSignModal('${act.id}')">Sign Off LRF</button>`
+      : '';
 
     tr.innerHTML = `
       <td><strong>${act.travelerName}</strong><br><span style="font-size:0.75rem; color: var(--text-muted);">${act.travelerTitle}</span></td>
@@ -185,6 +190,7 @@ function renderDashboard() {
       <td>${advanceText}</td>
       <td><span class="badge ${badgeClass}">${act.status}</span></td>
       <td>
+        ${signOffBtn}
         <button class="btn btn-secondary btn-sm" onclick="viewFormsFor('${act.id}')">View Forms</button>
         <button class="btn btn-secondary btn-sm" onclick="goToSlackSim('${act.id}')" style="background: var(--slack-sidebar); border: 1px solid rgba(255,255,255,0.1); color: #fff;">Test Slack</button>
       </td>
@@ -288,48 +294,53 @@ function setupSlackSimulator() {
         // Push success response from bot
         addSlackMessage('Orgtivity Bot', true, data.message, 'bot-dm');
         
-        // If it was LRF submit, trigger direct notifications to user
+        // If it was LRF submit, route to the supervisor for sign-off first.
         if (activeSlackModal.callback_id === 'lrf_modal_submit') {
           const act = data.activity;
           selectedActivityId = act.id;
-          
-          addSlackMessage('Orgtivity Bot', true, `📢 *New Activity Registered:* *${act.purpose}* for *${act.travelerName}* (${act.destination}).`, 'general');
-          
-          if (act.advanceRequired) {
-            // Notification in traveler's DM
-            addSlackMessage(
-              'Orgtivity Bot', 
-              true, 
-              `👋 Hi *${act.travelerName}*, an activity *${act.purpose}* has been scheduled for you. Since it requires advance payment, please fill in your Advance Request form.`,
-              'kassim-dm',
-              [
-                {
-                  type: 'section',
-                  text: `Activity: *${act.purpose}*\nDestination: *${act.destination}*\nDates: *${act.dates}*`
-                },
-                {
-                  type: 'actions',
-                  elements: [
-                    { type: 'button', text: 'Complete Advance Form', actionId: 'open_advance_form', activityId: act.id, style: 'primary' }
-                  ]
-                }
+
+          const supName = act.supervisorName || 'their supervisor';
+          addSlackMessage('Orgtivity Bot', true, `📢 *New Travel Request Filed:* *${act.purpose}* for *${act.travelerName}* (${act.destination}). Awaiting sign-off by *${supName}*.`, 'general');
+
+          const signOffBlocks = [
+            {
+              type: 'section',
+              text: `*LRF Sign-Off Needed* — *${act.travelerName}* filed a Travel Request.\n*Purpose:* ${act.purpose}\n*Route:* ${act.origin} → ${act.destination}\n*Dates:* ${act.dates}\n*Advance Needed:* ${act.advanceRequired ? 'Yes' : 'No'}`
+            },
+            {
+              type: 'actions',
+              elements: [
+                { type: 'button', text: 'Sign & Approve', actionId: 'open_lrf_sign_modal', activityId: act.id, style: 'primary' }
               ]
+            }
+          ];
+
+          addSlackMessage('Orgtivity Bot', true, `📝 LRF sign-off needed for *${act.travelerName}* — ${act.purpose}.`, 'lrf-approvals', signOffBlocks);
+
+          // Drop it into the supervisor's DM too when we have a matching sim channel.
+          const supDm = act.supervisorName && act.supervisorName.toLowerCase().includes('isaya') ? 'isaya-dm' : null;
+          if (supDm) {
+            addSlackMessage('Orgtivity Bot', true, `📝 You have a Travel Request to sign off for *${act.travelerName}* — ${act.purpose}.`, supDm, signOffBlocks);
+          }
+        }
+
+        // LRF sign-off submitted -> notify the traveler to proceed.
+        if (activeSlackModal.callback_id === 'lrf_sign_modal_submit') {
+          const act = data.activity;
+          const approver = act.lrfApproval.approvedBy;
+          if (act.advanceRequired) {
+            addSlackMessage(
+              'Orgtivity Bot', true,
+              `✅ Your Travel Request *${act.purpose}* was signed off by *${approver}*. Since it requires an advance, please complete your Advance Request form.`,
+              'kassim-dm',
+              [{ type: 'actions', elements: [{ type: 'button', text: 'Complete Advance Form', actionId: 'open_advance_form', activityId: act.id, style: 'primary' }] }]
             );
           } else {
-            // No advance needed, notify active status
             addSlackMessage(
-              'Orgtivity Bot',
-              true,
-              `✅ Hi *${act.travelerName}*, activity *${act.purpose}* (Zanzibar SMT) has been authorized. You did not request advance. Please retire expenses and attach receipts after the trip.`,
+              'Orgtivity Bot', true,
+              `✅ Your Travel Request *${act.purpose}* was signed off by *${approver}*. No advance was requested — please retire expenses with receipts after the trip.`,
               'kassim-dm',
-              [
-                {
-                  type: 'actions',
-                  elements: [
-                    { type: 'button', text: 'Retire Expenses (Refund)', actionId: 'open_retirement_form', activityId: act.id, style: 'primary' }
-                  ]
-                }
-              ]
+              [{ type: 'actions', elements: [{ type: 'button', text: 'Retire Expenses (Refund)', actionId: 'open_retirement_form', activityId: act.id, style: 'primary' }] }]
             );
           }
         }
@@ -950,113 +961,81 @@ function renderFormsViewer() {
   }
 }
 
+// Render a signature: a drawn image when available, otherwise cursive typed text.
+function renderSignatureMark(approval) {
+  if (!approval) return '<span class="trf-sig-line-sm"></span>';
+  if (approval.signatureType === 'drawn' && approval.signatureImage) {
+    return `<img src="${approval.signatureImage}" class="trf-sig-img" alt="signature" crossorigin="anonymous">`;
+  }
+  if (approval.signatureText) {
+    return `<span class="trf-sig-cursive">${approval.signatureText}</span>`;
+  }
+  return '<span class="trf-sig-line-sm"></span>';
+}
+
 // PDF Form Generators
 function generateTrfHtml(act) {
-  const dateStr = new Date(act.createdAt).toLocaleDateString('en-GB');
+  const reqDate = new Date(act.lrfApproval && act.lrfApproval.requestedAt ? act.lrfApproval.requestedAt : act.createdAt).toLocaleDateString('en-GB');
+  const approved = act.lrfApproval && act.lrfApproval.status === 'Approved';
+  const appDate = approved && act.lrfApproval.approvedAt ? new Date(act.lrfApproval.approvedAt).toLocaleDateString('en-GB') : '';
+  const approverName = approved ? act.lrfApproval.approvedBy : (act.supervisorName || '');
+  const dob = act.dob ? new Date(act.dob).toLocaleDateString('en-GB') : '';
+
+  const travelerSig = `<span class="trf-sig-cursive">${act.travelerName.split(' ')[0]}</span>`;
+  const approverSig = approved ? renderSignatureMark(act.lrfApproval) : '<span class="trf-sig-line-sm"></span>';
+
   return `
-    <div class="pdf-page">
-      <div class="pdf-header">
-        <img src="logo.svg" alt="D-tree Logo" class="pdf-logo">
-        <div class="pdf-title-container">
-          <div class="pdf-title">Travel Request Form</div>
-        </div>
-      </div>
+    <div class="pdf-page trf-doc">
+      <div class="trf-doc-title">Travel Request Form</div>
 
-      <div class="pdf-form-meta">
-        <div class="pdf-meta-box">
-          <div class="pdf-meta-label">1. Project and Purpose of Travel</div>
-          <div class="pdf-meta-value">${act.purpose}</div>
-          <div style="font-size: 8.5pt; color: #718096; margin-top: 4px;">Funder: ${act.funder} / ${act.projectName}</div>
-        </div>
-        <div class="pdf-meta-box">
-          <div class="pdf-meta-label">2. Status of Traveler</div>
-          <div class="pdf-meta-value">Staff (D-tree Staff Member)</div>
-        </div>
-      </div>
+      <ol class="trf-list">
+        <li><span class="trf-q">Project and purpose of travel (include full D-tree project name for proper allocation):</span>
+          <span class="trf-a">${act.purpose} — ${act.projectName}</span></li>
+        <li><span class="trf-q">Status of Traveler (staff/consultant/participant, etc.):</span> <span class="trf-a">Staff</span></li>
+        <li><span class="trf-q">Traveler Name:</span> <span class="trf-a">${act.travelerName}</span>
+          <div class="trf-sub"><span class="trf-q">D-tree staff/Ministry of Health/Other:</span> <span class="trf-a">D-tree Staff</span></div></li>
+        <li><span class="trf-q">Traveler Title (Dr/Mr/Mrs/Ms, etc.):</span> <span class="trf-a">${act.travelerTitle}</span></li>
+        <li><span class="trf-q">Traveler local phone number:</span> <span class="trf-a">${act.travelerPhone}</span></li>
+        <li><span class="trf-q">TZ Status (Resident or Foreigner):</span> <span class="trf-a">${act.residentStatus}</span></li>
+        <li><span class="trf-q">Traveler Date of Birth (for international flights only):</span> <span class="trf-a">${dob}</span></li>
+        <li><span class="trf-q">Preferred Airline (if any):</span> <span class="trf-a"></span></li>
+        <li><span class="trf-q">Traveler Passport Number (for international flights only):</span> <span class="trf-a">${act.passport || ''}</span></li>
+        <li><span class="trf-q">Please complete the following travel matrix:</span>
+          <table class="trf-matrix">
+            <thead>
+              <tr><th>Origin location</th><th>Destination location</th><th>Date of Travel</th><th>Time Preference (if any)</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>${act.origin}</td><td>${act.destination}</td><td>${act.dates}</td><td>${act.timePreference}</td></tr>
+              <tr><td>${act.destination}</td><td>${act.origin}</td><td>${act.dates}</td><td>Evening</td></tr>
+            </tbody>
+          </table>
+        </li>
+        <li><span class="trf-q">Other Notes (if applicable):</span>
+          <span class="trf-a">${act.advanceRequired ? 'Advance payment requested.' : 'No advance requested (direct retirement).'}</span></li>
+      </ol>
 
-      <div class="pdf-form-meta">
-        <div class="pdf-meta-box">
-          <div class="pdf-meta-label">3. Traveler Name</div>
-          <div class="pdf-meta-value">${act.travelerName}</div>
-        </div>
-        <div class="pdf-meta-box">
-          <div class="pdf-meta-label">4. Traveler Title</div>
-          <div class="pdf-meta-value">${act.travelerTitle}</div>
-        </div>
-      </div>
+      <div class="trf-signoff">
+        <div class="trf-signoff-head">12. Sign Offs: <span class="trf-signoff-note">(For Travel Agent: Process only approved forms)</span></div>
+        <div class="trf-funder"><strong>Funder:</strong> ${act.projectName}</div>
 
-      <div class="pdf-form-meta">
-        <div class="pdf-meta-box">
-          <div class="pdf-meta-label">5. Traveler Local Phone Number</div>
-          <div class="pdf-meta-value">${act.travelerPhone}</div>
+        <div class="trf-sig-row">
+          <div class="trf-sig-cell"><span class="trf-sig-key">Requested by:</span> ${act.travelerName}</div>
         </div>
-        <div class="pdf-meta-box">
-          <div class="pdf-meta-label">6. TZ Status</div>
-          <div class="pdf-meta-value">${act.residentStatus}</div>
+        <div class="trf-sig-row">
+          <div class="trf-sig-cell"><span class="trf-sig-key">Signature</span> <span class="trf-sig-slot">${travelerSig}</span></div>
+          <div class="trf-sig-cell trf-date-cell"><span class="trf-sig-key">Date</span> <span class="trf-sig-slot">${reqDate}</span></div>
         </div>
-      </div>
 
-      <div class="pdf-form-meta">
-        <div class="pdf-meta-box">
-          <div class="pdf-meta-label">7. Traveler Date of Birth (intl only)</div>
-          <div class="pdf-meta-value">${act.dob ? new Date(act.dob).toLocaleDateString('en-GB') : 'N/A'}</div>
+        <div class="trf-sig-row" style="margin-top:14px;">
+          <div class="trf-sig-cell"><span class="trf-sig-key">Approved by:</span> ${approverName}${approved && act.lrfApproval.approvedByTitle ? ' (' + act.lrfApproval.approvedByTitle + ')' : ''}</div>
         </div>
-        <div class="pdf-meta-box">
-          <div class="pdf-meta-label">8. Preferred Airline</div>
-          <div class="pdf-meta-value">N/A (SGR Train / Road Transport)</div>
+        <div class="trf-sig-row">
+          <div class="trf-sig-cell"><span class="trf-sig-key">Signature</span> <span class="trf-sig-slot">${approverSig}</span></div>
+          <div class="trf-sig-cell trf-date-cell"><span class="trf-sig-key">Date</span> <span class="trf-sig-slot">${appDate || '<span class="trf-sig-line-sm"></span>'}</span></div>
         </div>
-      </div>
 
-      <div class="pdf-section-title">10. Travel Matrix Route</div>
-      <table class="pdf-table">
-        <thead>
-          <tr>
-            <th>Origin Location</th>
-            <th>Destination Location</th>
-            <th>Date of Travel</th>
-            <th>Time Preference</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>${act.origin}</td>
-            <td>${act.destination}</td>
-            <td>${act.dates}</td>
-            <td>${act.timePreference}</td>
-          </tr>
-          <tr>
-            <td>${act.destination}</td>
-            <td>${act.origin}</td>
-            <td>${act.dates}</td>
-            <td>Evening</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="pdf-meta-box" style="margin-bottom: 25px;">
-        <div class="pdf-meta-label">11. Other Notes (if applicable)</div>
-        <div style="font-size: 10pt; color: #4a5568;">
-          Advance requested: ${act.advanceRequired ? 'Yes' : 'No'}. 
-          Approval routing triggered through D-tree Slack Bot integration.
-        </div>
-      </div>
-
-      <div class="pdf-section-title">12. Sign Offs</div>
-      <div style="font-size: 8.5pt; font-style: italic; color: #b7791f; margin-bottom: 10px;">For Travel Agent: Process only approved forms</div>
-      
-      <div class="pdf-signature-section">
-        <div class="pdf-sig-box">
-          <div class="pdf-signature-image">${act.travelerName.split(' ')[0]}</div>
-          <strong>Requested By (Traveler)</strong><br>
-          Name: ${act.travelerName}<br>
-          Date: ${dateStr}
-        </div>
-        <div class="pdf-sig-box">
-          <div class="pdf-signature-image" style="color: #2c5282;">Isaya</div>
-          <strong>Approved By (Supervisor)</strong><br>
-          Name: Isaya Mollel (Engineering Manager)<br>
-          Date: ${dateStr}
-        </div>
+        ${approved ? '' : '<div class="trf-pending-stamp">AWAITING SUPERVISOR SIGN-OFF</div>'}
       </div>
     </div>
   `;
@@ -1145,11 +1124,11 @@ function generateAdvanceHtml(act) {
           Date: ${dateStr}
         </div>
         <div class="pdf-sig-box">
-          ${act.advance.status === 'Approved' 
-            ? `<div class="pdf-signature-image" style="color: #2c5282;">Isaya</div>` 
+          ${act.advance.status === 'Approved'
+            ? `<div class="pdf-signature-image" style="color: #2c5282;">${(act.advance.approvedBy || act.supervisorName || 'Approved').split(' ')[0]}</div>`
             : `<div style="height:45px; display:flex; align-items:center; color: #e53e3e; font-weight:700; font-size:12pt; padding-left:20px;">PENDING APPROVAL</div>`}
           <strong>Approved by</strong><br>
-          Name: ${act.advance.approvedBy || 'Isaya Mollel (Engineering Manager)'}<br>
+          Name: ${act.advance.approvedBy || act.supervisorName || 'Supervisor'}<br>
           Date: ${appDateStr}
         </div>
       </div>
@@ -1256,16 +1235,204 @@ function generateRetirementHtml(act) {
           Date: ${dateStr}
         </div>
         <div class="pdf-sig-box">
-          ${act.retirement.status === 'Approved' 
-            ? `<div class="pdf-signature-image" style="color: #2c5282;">Isaya</div>` 
+          ${act.retirement.status === 'Approved'
+            ? `<div class="pdf-signature-image" style="color: #2c5282;">${(act.retirement.approvedBy || act.supervisorName || 'Approved').split(' ')[0]}</div>`
             : `<div style="height:45px; display:flex; align-items:center; color: #e53e3e; font-weight:700; font-size:12pt; padding-left:20px;">PENDING APPROVAL</div>`}
           <strong>Approval Signature & Title</strong><br>
-          Name: ${act.retirement.approvedBy || 'Isaya Mollel (Engineering Manager)'}<br>
+          Name: ${act.retirement.approvedBy || act.supervisorName || 'Supervisor'}<br>
           Date: ${appDateStr}
         </div>
       </div>
     </div>
   `;
+}
+
+// 4b. WEB LRF SIGN-OFF (canvas signature pad)
+let signCtx = null;
+let signDrawing = false;
+let signHasInk = false;
+let signActivityId = null;
+
+function openWebSignModal(activityId) {
+  signActivityId = activityId;
+  const act = activities.find(a => a.id === activityId);
+  const overlay = document.getElementById('websign-overlay');
+  const summary = document.getElementById('websign-summary');
+
+  if (act) {
+    summary.innerHTML = `
+      <strong>${act.purpose}</strong><br>
+      Traveler: <strong>${act.travelerName}</strong> (${act.travelerTitle})<br>
+      Route: ${act.origin} → ${act.destination} &nbsp;•&nbsp; ${act.dates}<br>
+      Approving as: <strong>${act.supervisorName || 'Supervisor'}</strong>${act.supervisorTitle ? ` (${act.supervisorTitle})` : ''}
+    `;
+  } else {
+    summary.textContent = 'Activity details unavailable.';
+  }
+
+  overlay.style.display = 'flex';
+  // Defer canvas sizing until the modal is laid out.
+  requestAnimationFrame(setupSignatureCanvas);
+}
+
+function closeWebSignModal() {
+  document.getElementById('websign-overlay').style.display = 'none';
+  signActivityId = null;
+}
+
+function setupSignatureCanvas() {
+  const canvas = document.getElementById('signature-canvas');
+  if (!canvas) return;
+  // Size the backing store to the displayed size for crisp lines.
+  const rect = canvas.getBoundingClientRect();
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = rect.width * ratio;
+  canvas.height = rect.height * ratio;
+  signCtx = canvas.getContext('2d');
+  signCtx.scale(ratio, ratio);
+  signCtx.lineWidth = 2.2;
+  signCtx.lineCap = 'round';
+  signCtx.lineJoin = 'round';
+  signCtx.strokeStyle = '#1a365d';
+  signHasInk = false;
+}
+
+function signPos(e) {
+  const canvas = document.getElementById('signature-canvas');
+  const rect = canvas.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+}
+
+function signStart(e) {
+  e.preventDefault();
+  if (!signCtx) return;
+  signDrawing = true;
+  const p = signPos(e);
+  signCtx.beginPath();
+  signCtx.moveTo(p.x, p.y);
+}
+
+function signMove(e) {
+  if (!signDrawing || !signCtx) return;
+  e.preventDefault();
+  const p = signPos(e);
+  signCtx.lineTo(p.x, p.y);
+  signCtx.stroke();
+  signHasInk = true;
+}
+
+function signEnd() {
+  signDrawing = false;
+}
+
+function clearSignature() {
+  const canvas = document.getElementById('signature-canvas');
+  if (signCtx && canvas) {
+    signCtx.clearRect(0, 0, canvas.width, canvas.height);
+    signHasInk = false;
+  }
+}
+
+async function submitWebSignOff() {
+  if (!signActivityId) return;
+  if (!signHasInk) {
+    alert('Please draw your signature before approving.');
+    return;
+  }
+  const act = activities.find(a => a.id === signActivityId);
+  const canvas = document.getElementById('signature-canvas');
+  const signatureImage = canvas.toDataURL('image/png');
+
+  try {
+    const res = await fetch(`/api/activities/${signActivityId}/approve-lrf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        signatureImage,
+        approverId: act ? act.supervisorId : undefined
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeWebSignModal();
+      await loadData();
+      renderDashboard();
+      alert(`LRF for "${data.activity.purpose}" signed off successfully. The traveler can now proceed.`);
+    } else {
+      alert('Error: ' + (data.error || 'Could not sign off LRF.'));
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Sign-off failed. Ensure the backend server is running.');
+  }
+}
+
+function setupWebSignListeners() {
+  const canvas = document.getElementById('signature-canvas');
+  if (!canvas) return;
+  canvas.addEventListener('mousedown', signStart);
+  canvas.addEventListener('mousemove', signMove);
+  window.addEventListener('mouseup', signEnd);
+  canvas.addEventListener('touchstart', signStart, { passive: false });
+  canvas.addEventListener('touchmove', signMove, { passive: false });
+  canvas.addEventListener('touchend', signEnd);
+
+  document.getElementById('websign-clear-btn').addEventListener('click', clearSignature);
+  document.getElementById('websign-cancel-btn').addEventListener('click', closeWebSignModal);
+  document.getElementById('websign-close-btn').addEventListener('click', closeWebSignModal);
+  document.getElementById('websign-submit-btn').addEventListener('click', submitWebSignOff);
+}
+
+// 4c. CLIENT-SIDE A4 PDF DOWNLOAD
+function downloadCurrentForm() {
+  const activeTab = document.querySelector('.print-tab.active');
+  if (!activeTab || !selectedActivityId) {
+    alert('Select an activity first.');
+    return;
+  }
+  downloadAsPdf(selectedActivityId, activeTab.getAttribute('data-form-type'));
+}
+
+function downloadAsPdf(activityId, formType) {
+  const act = activities.find(a => a.id === activityId);
+  if (!act) return;
+
+  let html, label;
+  if (formType === 'advance') { html = generateAdvanceHtml(act); label = 'Advance'; }
+  else if (formType === 'retirement') { html = generateRetirementHtml(act); label = 'Retirement'; }
+  else { html = generateTrfHtml(act); label = 'TRF'; }
+
+  // Render the form off-screen at A4 width so html2canvas captures full styling.
+  const holder = document.createElement('div');
+  holder.style.position = 'fixed';
+  holder.style.left = '-10000px';
+  holder.style.top = '0';
+  holder.style.width = '794px'; // ~210mm at 96dpi
+  holder.style.background = '#ffffff';
+  holder.style.padding = '40px';
+  holder.style.boxSizing = 'border-box';
+  holder.className = 'pdf-export-holder';
+  holder.innerHTML = html;
+  document.body.appendChild(holder);
+
+  const safeName = `${act.travelerName.split(' ')[0]}-${label}-${act.destination}`.replace(/[^a-z0-9\-]/gi, '_');
+  const opt = {
+    margin: [10, 10, 10, 10],
+    filename: `${safeName}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] }
+  };
+
+  html2pdf().set(opt).from(holder).save().then(() => {
+    document.body.removeChild(holder);
+  }).catch(err => {
+    console.error('PDF generation failed:', err);
+    if (holder.parentNode) document.body.removeChild(holder);
+    alert('PDF generation failed. See console for details.');
+  });
 }
 
 // 5. SETTINGS VIEW RENDER

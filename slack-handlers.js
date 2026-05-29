@@ -389,6 +389,11 @@ function handleLrfSubmission(viewValues) {
   const project = projects.find(p => p.id === projectId);
   const traveler = users.find(u => u.id === travelerId);
 
+  // Determine the traveler's supervisor (LRF sign-off authority).
+  const supervisor = traveler && traveler.supervisorId
+    ? users.find(u => u.id === traveler.supervisorId)
+    : null;
+
   const newActivity = {
     id: `act-${uuidv4().substring(0, 8)}`,
     purpose,
@@ -407,7 +412,23 @@ function handleLrfSubmission(viewValues) {
     dates,
     timePreference: timePref,
     advanceRequired: advanceReq,
-    status: advanceReq ? 'Awaiting Advance Request' : 'Active (No Advance)',
+    // Every LRF must now be signed off by the traveler's supervisor before
+    // any advance request or retirement can proceed.
+    supervisorId: supervisor ? supervisor.id : null,
+    supervisorName: supervisor ? supervisor.name : null,
+    supervisorTitle: supervisor ? supervisor.title : null,
+    status: 'Awaiting LRF Approval',
+    lrfApproval: {
+      status: 'Pending',
+      requestedBy: traveler ? traveler.name : '',
+      requestedAt: new Date().toISOString(),
+      signatureType: null,   // 'drawn' | 'typed'
+      signatureImage: null,  // served path e.g. /signatures/<id>.png (drawn, web)
+      signatureText: null,   // typed signature text (Slack)
+      approvedBy: null,
+      approvedByTitle: null,
+      approvedAt: null
+    },
     advance: null,
     retirement: null,
     createdAt: new Date().toISOString()
@@ -415,6 +436,87 @@ function handleLrfSubmission(viewValues) {
 
   dbManager.saveActivity(newActivity);
   return newActivity;
+}
+
+// Build the Slack/simulator modal where a manager types their signature to
+// approve an LRF.
+function buildLrfSignModal(activityId) {
+  const activity = dbManager.getActivity(activityId);
+  const summary = activity
+    ? `*${activity.purpose}*\nTraveler: *${activity.travelerName}* (${activity.travelerTitle})\nRoute: ${activity.origin} → ${activity.destination}\nDates: ${activity.dates}`
+    : 'Activity details unavailable.';
+
+  return {
+    type: "modal",
+    callback_id: "lrf_sign_modal_submit",
+    private_metadata: activityId,
+    title: { type: "plain_text", text: "Sign & Approve LRF" },
+    submit: { type: "plain_text", text: "Sign & Approve" },
+    close: { type: "plain_text", text: "Cancel" },
+    blocks: [
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: `You are approving the following Travel Request Form:\n\n${summary}` }
+      },
+      { type: "divider" },
+      {
+        type: "input",
+        block_id: "signature_block",
+        element: {
+          type: "plain_text_input",
+          action_id: "signature",
+          placeholder: { type: "plain_text", text: "Type your full name as your signature" }
+        },
+        label: { type: "plain_text", text: "Signature (type your full name)" }
+      }
+    ]
+  };
+}
+
+// Core LRF approval routine, shared by the web dashboard (drawn signature) and
+// Slack/simulator (typed signature). Advances the activity to its next status.
+function approveLrf(activityId, opts = {}) {
+  const activity = dbManager.getActivity(activityId);
+  if (!activity) throw new Error("Activity not found");
+  if (!activity.lrfApproval) {
+    activity.lrfApproval = { status: 'Pending' };
+  }
+
+  // Resolve the approver. Prefer an explicit id (e.g. the Slack user who
+  // clicked), otherwise fall back to the traveler's recorded supervisor.
+  const users = dbManager.getUsers();
+  let approver = null;
+  if (opts.approverId) approver = users.find(u => u.id === opts.approverId);
+  if (!approver && activity.supervisorId) approver = users.find(u => u.id === activity.supervisorId);
+
+  const approverName = opts.approverName || (approver ? approver.name : (activity.supervisorName || 'Supervisor'));
+  const approverTitle = opts.approverTitle || (approver ? approver.title : (activity.supervisorTitle || ''));
+
+  activity.lrfApproval.status = 'Approved';
+  activity.lrfApproval.signatureType = opts.signatureType || 'typed';
+  activity.lrfApproval.signatureImage = opts.signatureImage || null;
+  activity.lrfApproval.signatureText = opts.signatureText || approverName;
+  activity.lrfApproval.approvedBy = approverName;
+  activity.lrfApproval.approvedByTitle = approverTitle;
+  activity.lrfApproval.approvedAt = new Date().toISOString();
+
+  // Gate cleared: move to the appropriate next stage.
+  activity.status = activity.advanceRequired ? 'Awaiting Advance Request' : 'Active (No Advance)';
+
+  dbManager.saveActivity(activity);
+  return activity;
+}
+
+// Handle the typed-signature LRF sign-off coming from a Slack/simulator modal.
+function handleLrfSignSubmission(activityId, viewValues, signerInfo = {}) {
+  const signatureText = viewValues.signature_block.signature.value;
+  return approveLrf(activityId, {
+    signatureType: 'typed',
+    signatureText,
+    approverId: signerInfo.approverId,
+    approverName: signerInfo.approverName,
+    approverTitle: signerInfo.approverTitle
+  });
 }
 
 // Handle Advance Modal Submit
@@ -623,9 +725,12 @@ function translateSlackSubmissionToSimulator(viewValues) {
 
 module.exports = {
   buildLrfModal,
+  buildLrfSignModal,
   buildAdvanceModal,
   buildRetirementModal,
   handleLrfSubmission,
+  approveLrf,
+  handleLrfSignSubmission,
   handleAdvanceSubmission,
   handleAdvanceApproval,
   handleRetirementSubmission,

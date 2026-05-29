@@ -258,9 +258,9 @@
             <div class="view-subtitle">Generate and print high-fidelity documents styled exactly like the official D-tree templates.</div>
           </div>
           <div style="display: flex; gap: 0.75rem;">
-            <button class="btn btn-secondary" onclick="window.print()">
-              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-              Print / Save PDF
+            <button class="btn btn-primary" onclick="downloadCurrentForm()">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+              Download A4 PDF
             </button>
           </div>
         </div>
@@ -347,6 +347,33 @@
     </main>
   </div>
 
+  <!-- WEB LRF SIGN-OFF MODAL (draw signature on canvas) -->
+  <div class="websign-overlay" id="websign-overlay">
+    <div class="websign-modal">
+      <div class="websign-header">
+        <span class="websign-title">Sign Off Travel Request</span>
+        <button class="websign-close" id="websign-close-btn" type="button">&times;</button>
+      </div>
+      <div class="websign-body">
+        <div class="websign-summary" id="websign-summary"></div>
+        <label class="websign-label">Draw your signature below</label>
+        <div class="signature-pad-wrap">
+          <canvas id="signature-canvas" class="signature-canvas"></canvas>
+          <div class="signature-pad-baseline"></div>
+        </div>
+        <div class="websign-hint">Use your mouse or finger to sign. This signature will appear on the approved Travel Request Form.</div>
+      </div>
+      <div class="websign-footer">
+        <button type="button" class="btn btn-secondary" id="websign-clear-btn">Clear</button>
+        <div style="flex:1;"></div>
+        <button type="button" class="btn btn-secondary" id="websign-cancel-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="websign-submit-btn">Sign &amp; Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Client-side PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <!-- Client-side Logic Entrypoint -->
   <script src="app.js"></script>
 </body>

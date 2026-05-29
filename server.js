@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const dotenv = require('dotenv');
 const { v4: uuidv4 } = require('uuid');
 
@@ -159,81 +160,149 @@ if (
         const values = slackHandlers.translateSlackSubmissionToSimulator(slackValues);
         const activity = slackHandlers.handleLrfSubmission(values);
         
-        const traveler = dbManager.getUsers().find(u => u.id === activity.travelerId);
+        const usersList = dbManager.getUsers();
+        const supervisor = activity.supervisorId
+          ? usersList.find(u => u.id === activity.supervisorId)
+          : null;
         const generalChan = await getChannelId(client, '#general', process.env.SLACK_CHANNEL_GENERAL);
 
         await client.chat.postMessage({
           channel: generalChan,
-          text: `📢 *New Activity Registered:* *${activity.purpose}* for *${activity.travelerName}* (${activity.destination}).`
+          text: `📢 *New Travel Request Filed:* *${activity.purpose}* for *${activity.travelerName}* (${activity.destination}). Awaiting sign-off by ${supervisor ? supervisor.name : 'their supervisor'}.`
         });
 
+        // Ask the supervisor to sign off the LRF before anything else proceeds.
+        const signOffBlocks = [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `📝 *LRF Sign-Off Needed:* *${activity.travelerName}* filed a Travel Request that needs your approval before it can proceed.`
+            }
+          },
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `*Purpose:* ${activity.purpose}\n*Route:* ${activity.origin} → ${activity.destination}\n*Dates:* ${activity.dates}\n*Advance Needed:* ${activity.advanceRequired ? 'Yes' : 'No'}`
+            }
+          },
+          {
+            type: 'actions',
+            elements: [
+              {
+                type: 'button',
+                text: { type: 'plain_text', text: 'Sign & Approve' },
+                action_id: 'open_lrf_sign_modal',
+                value: activity.id,
+                style: 'primary'
+              }
+            ]
+          }
+        ];
+
+        const approvalChan = await getChannelId(client, '#lrf-approvals', process.env.SLACK_CHANNEL_APPROVALS);
+        await client.chat.postMessage({
+          channel: approvalChan,
+          text: `📝 LRF sign-off needed for *${activity.travelerName}* — ${activity.purpose}.`,
+          blocks: signOffBlocks
+        });
+
+        if (supervisor) {
+          const supervisorSlackId = await getSlackUserId(client, supervisor);
+          if (supervisorSlackId) {
+            await client.chat.postMessage({
+              channel: supervisorSlackId,
+              text: `📝 LRF sign-off needed for *${activity.travelerName}* — ${activity.purpose}.`,
+              blocks: signOffBlocks
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Slack LRF submit error:", err);
+      }
+    });
+
+    // Action click: open the LRF sign-off modal (manager types signature)
+    boltApp.action('open_lrf_sign_modal', async ({ ack, body, client }) => {
+      await ack();
+      try {
+        const activityId = body.actions[0].value;
+        const activity = dbManager.getActivity(activityId);
+        if (!activity) return;
+
+        const rawModal = slackHandlers.buildLrfSignModal(activityId);
+        const slackModal = slackHandlers.translateModalToSlack(rawModal);
+        await client.views.open({
+          trigger_id: body.trigger_id,
+          view: slackModal
+        });
+      } catch (err) {
+        console.error("Slack Action open_lrf_sign_modal error:", err);
+      }
+    });
+
+    // View submit: LRF sign-off (typed signature) -> notify traveler to proceed
+    boltApp.view('lrf_sign_modal_submit', async ({ ack, body, view, client }) => {
+      await ack();
+      try {
+        const activityId = view.private_metadata;
+        const slackValues = view.state.values;
+        const values = slackHandlers.translateSlackSubmissionToSimulator(slackValues);
+
+        // Identify the signing manager from their Slack identity.
+        const slackUserId = body.user.id;
+        const usersList = dbManager.getUsers();
+        let signer = usersList.find(u => u.slackUserId === slackUserId);
+        if (!signer) {
+          try {
+            const info = await client.users.info({ user: slackUserId });
+            if (info.ok && info.user) {
+              const realName = info.user.real_name || info.user.name;
+              signer = usersList.find(u => u.name.toLowerCase() === realName.toLowerCase());
+              if (signer) { signer.slackUserId = slackUserId; dbManager.saveUser(signer); }
+            }
+          } catch (e) {
+            console.warn("Failed to resolve LRF signer:", e.message);
+          }
+        }
+
+        const activity = slackHandlers.handleLrfSignSubmission(activityId, values, {
+          approverId: signer ? signer.id : undefined,
+          approverName: signer ? signer.name : undefined,
+          approverTitle: signer ? signer.title : undefined
+        });
+
+        const approverName = activity.lrfApproval.approvedBy;
+
+        // Notify the traveler that the LRF is approved and what to do next.
+        const traveler = usersList.find(u => u.id === activity.travelerId);
         if (traveler) {
           const travelerSlackId = await getSlackUserId(client, traveler);
           if (travelerSlackId) {
             if (activity.advanceRequired) {
               await client.chat.postMessage({
                 channel: travelerSlackId,
-                text: `👋 Hi *${activity.travelerName}*, an activity *${activity.purpose}* has been scheduled for you. Since it requires advance payment, please fill in your Advance Request form.`,
+                text: `✅ Your Travel Request *${activity.purpose}* was signed off by ${approverName}. Please complete your Advance Request form.`,
                 blocks: [
-                  {
-                    type: 'section',
-                    text: {
-                      type: 'mrkdwn',
-                      text: `👋 Hi *${activity.travelerName}*, an activity *${activity.purpose}* has been scheduled for you. Since it requires advance payment, please fill in your Advance Request form.`
-                    }
-                  },
-                  {
-                    type: 'section',
-                    text: {
-                      type: 'mrkdwn',
-                      text: `*Activity:* ${activity.purpose}\n*Destination:* ${activity.destination}\n*Dates:* ${activity.dates}`
-                    }
-                  },
-                  {
-                    type: 'actions',
-                    elements: [
-                      {
-                        type: 'button',
-                        text: { type: 'plain_text', text: 'Complete Advance Form' },
-                        action_id: 'open_advance_form',
-                        value: activity.id,
-                        style: 'primary'
-                      }
-                    ]
-                  }
+                  { type: 'section', text: { type: 'mrkdwn', text: `✅ Your Travel Request *${activity.purpose}* was signed off by *${approverName}*. Since it requires an advance, please complete your Advance Request form.` } },
+                  { type: 'actions', elements: [{ type: 'button', text: { type: 'plain_text', text: 'Complete Advance Form' }, action_id: 'open_advance_form', value: activity.id, style: 'primary' }] }
                 ]
               });
             } else {
               await client.chat.postMessage({
                 channel: travelerSlackId,
-                text: `✅ Hi *${activity.travelerName}*, activity *${activity.purpose}* has been authorized. You did not request advance. Please retire expenses and attach receipts after the trip.`,
+                text: `✅ Your Travel Request *${activity.purpose}* was signed off by ${approverName}. No advance was requested — please retire expenses with receipts after the trip.`,
                 blocks: [
-                  {
-                    type: 'section',
-                    text: {
-                      type: 'mrkdwn',
-                      text: `✅ Hi *${activity.travelerName}*, activity *${activity.purpose}* has been authorized. You did not request advance. Please retire expenses and attach receipts after the trip.`
-                    }
-                  },
-                  {
-                    type: 'actions',
-                    elements: [
-                      {
-                        type: 'button',
-                        text: { type: 'plain_text', text: 'Retire Expenses (Refund)' },
-                        action_id: 'open_retirement_form',
-                        value: activity.id,
-                        style: 'primary'
-                      }
-                    ]
-                  }
+                  { type: 'section', text: { type: 'mrkdwn', text: `✅ Your Travel Request *${activity.purpose}* was signed off by *${approverName}*. No advance was requested — please retire your expenses with receipts after the trip.` } },
+                  { type: 'actions', elements: [{ type: 'button', text: { type: 'plain_text', text: 'Retire Expenses (Refund)' }, action_id: 'open_retirement_form', value: activity.id, style: 'primary' }] }
                 ]
               });
             }
           }
         }
       } catch (err) {
-        console.error("Slack LRF submit error:", err);
+        console.error("Slack LRF sign submit error:", err);
       }
     });
 
@@ -648,7 +717,24 @@ if (
   }
 }
 
-// 2. SIMULATOR & WORKSPACE APIS
+// 2. CORE MIDDLEWARE
+// NOTE: these are mounted AFTER the Bolt ExpressReceiver router above so that
+// Slack request signature verification still sees the raw request body.
+app.use(cors());
+app.use(express.json({ limit: '10mb' })); // large limit for base64 signature images
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Persisted signature images live in data/signatures and are served statically.
+const SIGNATURES_DIR = path.join(__dirname, 'data', 'signatures');
+if (!fs.existsSync(SIGNATURES_DIR)) {
+  fs.mkdirSync(SIGNATURES_DIR, { recursive: true });
+}
+app.use('/signatures', express.static(SIGNATURES_DIR));
+
+// Serve the web dashboard / registry front-end.
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 3. SIMULATOR & WORKSPACE APIS
 
 // Get core metadata
 app.get('/api/projects', (req, res) => res.json(dbManager.getProjects()));
@@ -670,6 +756,42 @@ app.get('/api/activities/:id', (req, res) => {
 app.delete('/api/activities/:id', (req, res) => {
   dbManager.deleteActivity(req.params.id);
   res.json({ success: true });
+});
+
+// Web Dashboard LRF sign-off. Accepts either a drawn signature (base64 PNG
+// data URL) or typed signature text, records the supervisor approval, and
+// advances the activity to its next status.
+app.post('/api/activities/:id/approve-lrf', (req, res) => {
+  try {
+    const activityId = req.params.id;
+    const activity = dbManager.getActivity(activityId);
+    if (!activity) return res.status(404).json({ error: "Activity not found" });
+    if (activity.status !== 'Awaiting LRF Approval') {
+      return res.status(400).json({ error: `Activity is not awaiting LRF approval (current status: ${activity.status}).` });
+    }
+
+    const { signatureImage, signatureText, approverId } = req.body || {};
+    const opts = { approverId };
+
+    if (signatureImage && /^data:image\/png;base64,/.test(signatureImage)) {
+      // Persist the drawn signature as a PNG file and store only its path.
+      const base64 = signatureImage.replace(/^data:image\/png;base64,/, '');
+      const fileName = `${activityId}-${Date.now()}.png`;
+      fs.writeFileSync(path.join(SIGNATURES_DIR, fileName), Buffer.from(base64, 'base64'));
+      opts.signatureType = 'drawn';
+      opts.signatureImage = `/signatures/${fileName}`;
+    } else if (signatureText && signatureText.trim()) {
+      opts.signatureType = 'typed';
+      opts.signatureText = signatureText.trim();
+    } else {
+      return res.status(400).json({ error: "A drawn or typed signature is required." });
+    }
+
+    const updated = slackHandlers.approveLrf(activityId, opts);
+    res.json({ success: true, activity: updated });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Create manual LRF
@@ -758,6 +880,16 @@ app.post('/api/simulator/submit', (req, res) => {
       });
     }
 
+    if (callbackId === 'lrf_sign_modal_submit') {
+      const activityId = privateMetadata;
+      const activity = slackHandlers.handleLrfSignSubmission(activityId, values, { approverId: userId });
+      return res.json({
+        success: true,
+        message: `✅ LRF for *${activity.purpose}* signed off by *${activity.lrfApproval.approvedBy}*.`,
+        activity
+      });
+    }
+
     if (callbackId === 'advance_modal_submit') {
       const activityId = privateMetadata;
       const activity = slackHandlers.handleAdvanceSubmission(activityId, values);
@@ -795,6 +927,14 @@ app.post('/api/simulator/action', (req, res) => {
   try {
     const activity = dbManager.getActivity(activityId);
     if (!activity) return res.status(404).json({ error: "Activity not found" });
+
+    if (actionId === 'open_lrf_sign_modal') {
+      const modalSchema = slackHandlers.buildLrfSignModal(activityId);
+      return res.json({
+        type: 'modal',
+        schema: modalSchema
+      });
+    }
 
     if (actionId === 'open_advance_form') {
       const rates = dbManager.getRates();

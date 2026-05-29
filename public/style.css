@@ -1041,6 +1041,238 @@ tr:hover td {
   padding-left: 10px;
 }
 
+/* ===== Official TRF template replication (clean numbered list) ===== */
+.trf-doc {
+  font-family: 'Times New Roman', Georgia, serif;
+  color: #000;
+  font-size: 12pt;
+  line-height: 1.45;
+}
+
+.trf-doc-title {
+  text-align: center;
+  font-weight: 700;
+  font-size: 16pt;
+  margin-bottom: 18px;
+}
+
+.trf-list {
+  margin: 0 0 18px 0;
+  padding-left: 22px;
+}
+
+.trf-list > li {
+  margin-bottom: 9px;
+}
+
+.trf-q { font-weight: 400; }
+
+.trf-a {
+  font-weight: 700;
+}
+
+.trf-sub {
+  margin-top: 3px;
+}
+
+.trf-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 11pt;
+}
+
+.trf-matrix th,
+.trf-matrix td {
+  border: 1px solid #000;
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.trf-matrix th { font-weight: 700; }
+
+.trf-signoff {
+  border: 1.5px solid #000;
+  padding: 14px 16px;
+  margin-top: 18px;
+  position: relative;
+}
+
+.trf-signoff-head {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.trf-signoff-note {
+  font-weight: 400;
+  font-style: italic;
+  font-size: 10pt;
+}
+
+.trf-funder { margin-bottom: 14px; }
+
+.trf-sig-row {
+  display: flex;
+  gap: 30px;
+  align-items: flex-end;
+  margin-bottom: 4px;
+}
+
+.trf-sig-cell { flex: 1; }
+.trf-date-cell { max-width: 230px; }
+
+.trf-sig-key { font-weight: 400; }
+
+.trf-sig-slot {
+  display: inline-block;
+  min-width: 150px;
+  border-bottom: 1px solid #000;
+  padding: 0 6px 2px;
+  vertical-align: bottom;
+  min-height: 20px;
+}
+
+.trf-date-cell .trf-sig-slot { min-width: 120px; }
+
+.trf-sig-cursive {
+  font-family: 'Brush Script MT', 'Segoe Script', cursive;
+  font-size: 22pt;
+  color: #1a365d;
+  line-height: 1;
+}
+
+.trf-sig-img {
+  max-height: 46px;
+  max-width: 200px;
+  vertical-align: bottom;
+}
+
+.trf-sig-line-sm {
+  display: inline-block;
+  width: 150px;
+}
+
+.trf-pending-stamp {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  border: 2px solid #e53e3e;
+  color: #e53e3e;
+  font-weight: 700;
+  font-size: 10pt;
+  padding: 4px 10px;
+  border-radius: 4px;
+  transform: rotate(-6deg);
+  opacity: 0.85;
+}
+
+/* ===== Web LRF sign-off modal + signature pad ===== */
+.websign-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.websign-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+  overflow: hidden;
+}
+
+.websign-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.websign-title {
+  font-family: var(--font-title, inherit);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #1a202c;
+}
+
+.websign-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #718096;
+}
+
+.websign-body { padding: 1.25rem; }
+
+.websign-summary {
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.85rem;
+  color: #2d3748;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.websign-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 0.4rem;
+}
+
+.signature-pad-wrap {
+  position: relative;
+  border: 2px dashed #cbd5e0;
+  border-radius: 8px;
+  background: #fff;
+  height: 180px;
+}
+
+.signature-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.signature-pad-baseline {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 38px;
+  border-bottom: 1px solid #e2e8f0;
+  pointer-events: none;
+}
+
+.websign-hint {
+  font-size: 0.75rem;
+  color: #718096;
+  margin-top: 0.5rem;
+}
+
+.websign-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border, #e2e8f0);
+  background: #f8fafc;
+}
+
 /* Print View Specific Overrides */
 @media print {
   body {

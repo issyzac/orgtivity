@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+
+# Runtime-generated signature images (captured on LRF sign-off)
+data/signatures/*.png
+
+# OS / logs
+.DS_Store
+*.log
