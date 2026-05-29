@@ -1,0 +1,262 @@
+{
+  "projects": [
+    {
+      "id": "proj-botnar",
+      "name": "Afyatek II Botnar & NCD Endless",
+      "funder": "Botnar & NCD Endless"
+    },
+    {
+      "id": "proj-hilton",
+      "name": "Hilton Foundation - ZNZ Grant 3 (Jamii ni Afya)",
+      "funder": "Hilton Foundation"
+    },
+    {
+      "id": "proj-unicef",
+      "name": "UNICEF Community Health Support",
+      "funder": "UNICEF"
+    }
+  ],
+  "users": [
+    {
+      "id": "usr-kassim",
+      "name": "Kassim Sheghembe",
+      "title": "Software Engineer",
+      "phone": "0712345678",
+      "residentStatus": "Resident",
+      "dob": "1992-04-15",
+      "passport": "",
+      "supervisorId": "usr-isaya",
+      "email": "kassim.sheghembe@d-tree.org",
+      "slackUserId": ""
+    },
+    {
+      "id": "usr-isaya",
+      "name": "Isaya Mollel",
+      "title": "Engineering Manager",
+      "phone": "0755688678",
+      "residentStatus": "Resident",
+      "dob": "1988-08-22",
+      "passport": "",
+      "supervisorId": "usr-director",
+      "email": "isaya.mollel@d-tree.org",
+      "slackUserId": ""
+    },
+    {
+      "id": "usr-director",
+      "name": "Mariam Ally",
+      "title": "Country Director",
+      "phone": "0765432109",
+      "residentStatus": "Resident",
+      "dob": "1980-01-01",
+      "passport": "",
+      "supervisorId": "",
+      "email": "mariam.ally@d-tree.org",
+      "slackUserId": ""
+    }
+  ],
+  "rates": [
+    {
+      "location": "Morogoro",
+      "perDiem": 90000,
+      "halfPerDiem": 45000,
+      "hotel": 100000,
+      "sgr": 50500,
+      "taxi": 20000
+    },
+    {
+      "location": "Zanzibar",
+      "perDiem": 120000,
+      "halfPerDiem": 60000,
+      "hotel": 150000,
+      "flight": 250000,
+      "taxi": 30000
+    },
+    {
+      "location": "Dar es Salaam",
+      "perDiem": 100000,
+      "halfPerDiem": 50000,
+      "hotel": 120000,
+      "taxi": 15000
+    }
+  ],
+  "expenseCategories": [
+    "Per Diem",
+    "Ground Transport",
+    "Airfare",
+    "Travel - misc",
+    "Hotel",
+    "Computers and Phones",
+    "General Supplies",
+    "HW Supplies",
+    "Training & Follow up costs",
+    "Participant Costs",
+    "Gov't Meetings",
+    "Gov't Official Travel",
+    "Beneficiary/Patient Costs",
+    "Communications",
+    "Bank Fees",
+    "Outside Services",
+    "Conference Fees",
+    "Staff development"
+  ],
+  "activities": [
+    {
+      "id": "act-b17b0255",
+      "purpose": "UCS Technical Discussion & Workshop - Morogoro",
+      "projectId": "proj-botnar",
+      "projectName": "Afyatek II Botnar & NCD Endless",
+      "funder": "Botnar & NCD Endless",
+      "travelerId": "usr-kassim",
+      "travelerName": "Kassim Sheghembe",
+      "travelerTitle": "Software Engineer",
+      "travelerPhone": "0712345678",
+      "residentStatus": "Resident",
+      "dob": "1992-04-15",
+      "passport": "",
+      "origin": "Dar es Salaam",
+      "destination": "Morogoro",
+      "dates": "04th-05th December, 2025",
+      "timePreference": "Morning",
+      "advanceRequired": true,
+      "status": "Retired",
+      "advance": {
+        "items": [
+          {
+            "description": "Half per diem for 2 days in Morogoro attending the workshop",
+            "unitCost": 45000,
+            "units": 1,
+            "frequency": 2,
+            "total": 90000
+          },
+          {
+            "description": "SGR Fee (to/from Morogoro)",
+            "unitCost": 50500,
+            "units": 1,
+            "frequency": 2,
+            "total": 101000
+          },
+          {
+            "description": "Taxi Fee (to/from SGR station) in Morogoro",
+            "unitCost": 20000,
+            "units": 1,
+            "frequency": 2,
+            "total": 40000
+          }
+        ],
+        "totalRequested": 231000,
+        "status": "Approved",
+        "submittedAt": "2026-05-24T21:55:44.152Z",
+        "approvedBy": "Isaya Mollel",
+        "approvedAt": "2026-05-24T21:55:44.175Z"
+      },
+      "retirement": {
+        "expenses": [
+          {
+            "category": "Per Diem",
+            "memo": "1/2 per diem for Kassim Sheghembe in Morogoro during the workshop for 2 days.",
+            "unitCost": 45000,
+            "units": 1,
+            "frequency": 2,
+            "total": 90000,
+            "date": "04th-05th December, 2025"
+          },
+          {
+            "category": "Travel - misc",
+            "memo": "Return SGR Fare from Dar to Morogoro",
+            "unitCost": 50500,
+            "units": 1,
+            "frequency": 2,
+            "total": 101000,
+            "date": "04th-05th December, 2025"
+          },
+          {
+            "category": "Ground Transport",
+            "memo": "Taxi cost in Morogoro from SGR to the Hotel and back.",
+            "unitCost": 40000,
+            "units": 1,
+            "frequency": 1,
+            "total": 40000,
+            "date": "04th-05th December, 2025"
+          },
+          {
+            "category": "Ground Transport",
+            "memo": "Taxi cost in Dar es salaam from Home to SGR and back",
+            "unitCost": 40000,
+            "units": 1,
+            "frequency": 1,
+            "total": 40000,
+            "date": "04th-05th December, 2025"
+          },
+          {
+            "category": "Hotel",
+            "memo": "One night stay at the hotel",
+            "unitCost": 100000,
+            "units": 1,
+            "frequency": 1,
+            "total": 100000,
+            "date": "04th-05th December, 2025"
+          }
+        ],
+        "subtotal": 371000,
+        "advanceAmount": 231000,
+        "netDue": 140000,
+        "receipts": [
+          "sgr_ticket.pdf",
+          "hotel_receipt.pdf",
+          "taxi_receipts.jpg"
+        ],
+        "status": "Approved",
+        "submittedAt": "2026-05-24T21:55:44.176Z",
+        "approvedBy": "Isaya Mollel",
+        "approvedAt": "2026-05-24T21:55:44.177Z"
+      },
+      "createdAt": "2026-05-24T21:55:44.147Z"
+    },
+    {
+      "id": "act-43b61450",
+      "purpose": "",
+      "projectId": "proj-hilton",
+      "projectName": "Hilton Foundation - ZNZ Grant 3 (Jamii ni Afya)",
+      "funder": "Hilton Foundation",
+      "travelerId": "usr-kassim",
+      "travelerName": "Kassim Sheghembe",
+      "travelerTitle": "Software Engineer",
+      "travelerPhone": "0712345678",
+      "residentStatus": "Resident",
+      "dob": "1992-04-15",
+      "passport": "",
+      "origin": "Dar es Salaam",
+      "destination": "",
+      "dates": "",
+      "timePreference": "Afternoon",
+      "advanceRequired": true,
+      "status": "Awaiting Advance Request",
+      "advance": null,
+      "retirement": null,
+      "createdAt": "2026-05-29T11:02:38.055Z"
+    },
+    {
+      "id": "act-3fc93d1f",
+      "purpose": "Integration Activity",
+      "projectId": "proj-hilton",
+      "projectName": "Hilton Foundation - ZNZ Grant 3 (Jamii ni Afya)",
+      "funder": "Hilton Foundation",
+      "travelerId": "usr-isaya",
+      "travelerName": "Isaya Mollel",
+      "travelerTitle": "Engineering Manager",
+      "travelerPhone": "0755688678",
+      "residentStatus": "Resident",
+      "dob": "1988-08-22",
+      "passport": "",
+      "origin": "Dar es Salaam",
+      "destination": "Morogoro",
+      "dates": "04th - 05th June",
+      "timePreference": "Morning",
+      "advanceRequired": true,
+      "status": "Awaiting Advance Request",
+      "advance": null,
+      "retirement": null,
+      "createdAt": "2026-05-29T11:03:32.802Z"
+    }
+  ]
+}

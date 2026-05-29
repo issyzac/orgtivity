@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orgtivity — D-tree Activity Automation & Tracking Portal</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="brand">
+      <img src="logo.svg" alt="D-tree Logo" class="brand-logo">
+      <div>
+        <h1>Orgtivity</h1>
+        <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">D-tree Activity & Expense Automator</div>
+      </div>
+    </div>
+    
+    <div class="slack-connection-status">
+      <div id="slack-status-dot" class="status-dot"></div>
+      <span id="slack-status-text">Simulated Slack Mode</span>
+    </div>
+  </header>
+
+  <div class="app-container">
+    <!-- Navigation Sidebar -->
+    <aside class="app-sidebar">
+      <ul class="nav-links">
+        <li class="nav-item active" data-view="dashboard">
+          <a href="#">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"></path></svg>
+            Dashboard
+          </a>
+        </li>
+        <li class="nav-item" data-view="simulator">
+          <a href="#">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+            Slack Simulator
+          </a>
+        </li>
+        <li class="nav-item" data-view="registry">
+          <a href="#">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            Forms Registry
+          </a>
+        </li>
+        <li class="nav-item" data-view="settings">
+          <a href="#">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            Rates & Projects
+          </a>
+        </li>
+      </ul>
+      <div class="sidebar-footer">
+        <div>Orgtivity v1.0.0</div>
+        <div>D-tree Tanzania</div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="app-content">
+
+      <!-- DASHBOARD PANEL -->
+      <section id="panel-dashboard" class="view-panel active">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Workflow Dashboard</h2>
+            <div class="view-subtitle">Monitor travel LRFs, advance claims, and expense retirements in real-time.</div>
+          </div>
+          <button class="btn btn-primary" id="btn-dashboard-new-lrf">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"></path></svg>
+            New Activity (LRF)
+          </button>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="dashboard-grid">
+          <div class="stat-card">
+            <div class="stat-title">Total Activities</div>
+            <div class="stat-value" id="stat-total-activities">0</div>
+            <div class="stat-desc">All registered activities this period</div>
+          </div>
+          <div class="stat-card" style="border-left: 4px solid var(--warning);">
+            <div class="stat-title">Awaiting Action</div>
+            <div class="stat-value" id="stat-pending-approvals" style="color: var(--warning);">0</div>
+            <div class="stat-desc">Pending advance or retirement approvals</div>
+          </div>
+          <div class="stat-card" style="border-left: 4px solid var(--success);">
+            <div class="stat-title">Total Disbursed</div>
+            <div class="stat-value" id="stat-total-disbursed" style="color: var(--success);">0 TZS</div>
+            <div class="stat-desc">Approved advances paid to staff</div>
+          </div>
+          <div class="stat-card" style="border-left: 4px solid #3b82f6;">
+            <div class="stat-title">Completed Retirements</div>
+            <div class="stat-value" id="stat-completed-retirements" style="color: #3b82f6;">0</div>
+            <div class="stat-desc">Fully retired and balanced activities</div>
+          </div>
+        </div>
+
+        <!-- Activity Table -->
+        <div class="table-container">
+          <div class="table-header">
+            <h3 class="table-title">Activity Registry Status Tracker</h3>
+            <span style="font-size: 0.8rem; color: var(--text-muted);" id="registry-count">0 items</span>
+          </div>
+          <div style="overflow-x: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Traveler</th>
+                  <th>Activity / Purpose</th>
+                  <th>Destination</th>
+                  <th>Dates</th>
+                  <th>Advance Requested</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-activities-list">
+                <tr>
+                  <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                    No activities registered yet. Start by typing <strong>/lrf</strong> in the Slack Simulator!
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLACK CLIENT SIMULATOR PANEL -->
+      <section id="panel-simulator" class="view-panel">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Slack Integration Simulator</h2>
+            <div class="view-subtitle">Simulate real-time Slack commands, interactive workflow buttons, and modal popups.</div>
+          </div>
+        </div>
+
+        <div class="simulator-layout">
+          <!-- Left side: Activity Selection context -->
+          <div class="registry-panel">
+            <h3 style="font-family: var(--font-title); font-size: 1.1rem; margin-bottom: 0.5rem;">Select Context Activity</h3>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Selecting an activity here lets you interact with the Slack Simulator as that specific traveler or their supervisor.
+            </div>
+            <div id="simulator-context-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <!-- Cards populated by JS -->
+              <div style="text-align: center; color: var(--text-muted); padding: 2rem; border: 1px dashed var(--border); border-radius: 8px;">
+                No activities available. Create one to begin.
+              </div>
+            </div>
+          </div>
+
+          <!-- Right side: Slack UI mockup -->
+          <div class="slack-client">
+            <div class="slack-header">
+              <span class="slack-header-circle slack-close"></span>
+              <span class="slack-header-circle slack-min"></span>
+              <span class="slack-header-circle slack-max"></span>
+              <span class="slack-header-title">SLACK - D-tree Tanzania Workspace</span>
+            </div>
+            
+            <div class="slack-body">
+              <!-- Slack channels sidebar -->
+              <aside class="slack-sidebar-nav">
+                <div class="slack-org-name">D-tree Tanzania</div>
+                
+                <div class="slack-section-title">Channels</div>
+                <ul class="slack-channel-list">
+                  <li class="slack-channel-item active" data-channel="general"># general</li>
+                  <li class="slack-channel-item" data-channel="lrf-approvals"># lrf-approvals</li>
+                  <li class="slack-channel-item" data-channel="finance"># finance</li>
+                </ul>
+
+                <div class="slack-section-title">Direct Messages</div>
+                <ul class="slack-channel-list">
+                  <li class="slack-channel-item" data-channel="bot-dm">🤖 Orgtivity Bot</li>
+                  <li class="slack-channel-item" data-channel="kassim-dm">👤 Kassim Sheghembe</li>
+                  <li class="slack-channel-item" data-channel="isaya-dm">👤 Isaya Mollel</li>
+                </ul>
+              </aside>
+
+              <!-- Slack Chat Pane -->
+              <div class="slack-chat-pane">
+                <div class="slack-chat-header" id="slack-chat-channel-title">
+                  # general
+                </div>
+                
+                <!-- Chat Messages Scroll -->
+                <div class="slack-chat-messages" id="slack-chat-history">
+                  <!-- Simulated Welcome Messages -->
+                  <div class="slack-message">
+                    <div class="slack-avatar bot">🤖</div>
+                    <div class="slack-msg-content">
+                      <div class="slack-msg-header">
+                        <span class="slack-msg-author">Orgtivity Bot</span>
+                        <span class="slack-msg-bot-tag">BOT</span>
+                        <span class="slack-msg-time">12:00 PM</span>
+                      </div>
+                      <div>
+                        Welcome to D-tree Tanzania's Orgtivity Bot! Use the following slash commands:
+                        <br><br>
+                        • <code>/lrf</code> — Open the Logistics Request Form to register a new travel activity.
+                        <br>
+                        • <code>/rates</code> — Look up current standard travel per diems and allowances.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Chat Input Box -->
+                <div class="slack-input-container">
+                  <form id="slack-input-form">
+                    <div class="slack-input-box">
+                      <span style="color: var(--text-muted); font-family: var(--font-mono); font-size: 0.9rem;">/</span>
+                      <input type="text" id="slack-input-field" class="slack-input-field" placeholder="Type lrf or rates..." autocomplete="off">
+                      <button type="submit" class="slack-send-btn">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <!-- SLACK MODAL OVERLAY (renders Bolt view configurations dynamically) -->
+            <div class="slack-modal-overlay" id="slack-modal-overlay">
+              <div class="slack-modal">
+                <div class="slack-modal-header">
+                  <span class="slack-modal-title" id="slack-modal-title">Logistics Request Form</span>
+                  <button class="slack-modal-close" id="slack-modal-close-btn">&times;</button>
+                </div>
+                
+                <form id="slack-modal-form">
+                  <div class="slack-modal-body" id="slack-modal-body-content">
+                    <!-- Loaded dynamically via JavaScript based on Block Kit schema -->
+                  </div>
+                  
+                  <div class="slack-modal-footer">
+                    <button type="button" class="slack-btn" id="slack-modal-cancel-btn">Cancel</button>
+                    <button type="submit" class="slack-btn slack-btn-primary" id="slack-modal-submit-btn">Submit</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REGISTRY & D-TREE FORM PRINT PANEL -->
+      <section id="panel-registry" class="view-panel">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">D-tree Forms & PDF Registry</h2>
+            <div class="view-subtitle">Generate and print high-fidelity documents styled exactly like the official D-tree templates.</div>
+          </div>
+          <div style="display: flex; gap: 0.75rem;">
+            <button class="btn btn-secondary" onclick="window.print()">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+              Print / Save PDF
+            </button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem; min-height: 500px;">
+          <!-- Left Activity Selector -->
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <h3 style="font-family: var(--font-title); font-size: 1.1rem; margin-bottom: 0.5rem;">Select Activity</h3>
+            <div id="registry-select-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Right Document Preview Area -->
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="print-tabs">
+              <div class="print-tab active" data-form-type="trf">1. Travel Request (TRF)</div>
+              <div class="print-tab" data-form-type="advance">2. Advance Form</div>
+              <div class="print-tab" data-form-type="retirement">3. Retirement Form</div>
+            </div>
+
+            <!-- Browser preview of printed pages -->
+            <div class="form-view-container" id="form-export-view">
+              <!-- Rendered via JS templates matching A4 print design -->
+              <div style="text-align: center; padding: 5rem; color: #a0aec0;">
+                Select an activity on the left to preview the D-tree forms.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONFIGURATION & SETTINGS PANEL -->
+      <section id="panel-settings" class="view-panel">
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Settings & Policy Parameters</h2>
+            <div class="view-subtitle">Configure organization projects, staff directories, and standard travel allowance rates.</div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+          <!-- Rate Policies -->
+          <div class="table-container">
+            <div class="table-header">
+              <h3 class="table-title">Standard Allowances & Rates</h3>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Location</th>
+                  <th>Full Per Diem</th>
+                  <th>Half Per Diem</th>
+                  <th>Hotel Limit</th>
+                  <th>Transport (Est)</th>
+                </tr>
+              </thead>
+              <tbody id="settings-rates-table">
+                <!-- Rates populated by JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Projects list -->
+          <div class="table-container">
+            <div class="table-header">
+              <h3 class="table-title">Active Program Projects</h3>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Project Name</th>
+                  <th>Funder</th>
+                </tr>
+              </thead>
+              <tbody id="settings-projects-table">
+                <!-- Projects populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Client-side Logic Entrypoint -->
+  <script src="app.js"></script>
+</body>
+</html>

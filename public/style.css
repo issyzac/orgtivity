@@ -1,0 +1,1098 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --font-sans: 'Inter', sans-serif;
+  --font-title: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --primary: #4fb3bf;
+  --primary-hover: #3d9da8;
+  --primary-glow: rgba(79, 179, 191, 0.3);
+  --accent: #8a2be2;
+  --accent-glow: rgba(138, 43, 226, 0.3);
+
+  --bg-app: #0b0f19;
+  --bg-gradient: radial-gradient(circle at top left, #1e1b4b 0%, #0b0f19 60%, #020617 100%);
+  --surface: rgba(17, 24, 39, 0.7);
+  --surface-hover: rgba(31, 41, 55, 0.85);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(79, 179, 191, 0.5);
+
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --text-dark: #1f2937;
+  
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+
+  --slack-bg: #1a1d21;
+  --slack-sidebar: #121013;
+  --slack-active-channel: #1164a3;
+  --slack-text: #d1d2d3;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-app);
+  background-image: var(--bg-gradient);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Header styling */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: rgba(11, 15, 25, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-logo {
+  width: 40px;
+  height: 40px;
+}
+
+.brand h1 {
+  font-family: var(--font-title);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  background: linear-gradient(135deg, #ffffff 30%, var(--primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.slack-connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--warning);
+  box-shadow: 0 0 8px var(--warning);
+}
+
+.status-dot.active {
+  background-color: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+
+/* Main Layout */
+.app-container {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 73px);
+}
+
+/* Sidebar navigation */
+.app-sidebar {
+  width: 260px;
+  background: rgba(11, 15, 25, 0.4);
+  border-right: 1px solid var(--border);
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nav-item a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  font-family: var(--font-title);
+}
+
+.nav-item.active a, .nav-item a:hover {
+  background: rgba(79, 179, 191, 0.1);
+  color: var(--primary);
+  border: 1px solid rgba(79, 179, 191, 0.2);
+}
+
+.nav-item.active a {
+  box-shadow: 0 0 15px rgba(79, 179, 191, 0.1);
+}
+
+.sidebar-footer {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+/* Content Area */
+.app-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.view-panel {
+  display: none;
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.view-panel.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Typography & Titles */
+.view-header {
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.view-title {
+  font-family: var(--font-title);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.view-subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 0.25rem;
+}
+
+/* Dashboard Cards Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  border-color: rgba(79, 179, 191, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.stat-title {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.stat-value {
+  font-size: 2.25rem;
+  font-family: var(--font-title);
+  font-weight: 700;
+  margin: 0.5rem 0;
+  color: #fff;
+}
+
+.stat-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Tables styling */
+.table-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  margin-bottom: 2rem;
+}
+
+.table-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.table-title {
+  font-family: var(--font-title);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+th {
+  padding: 1rem 1.5rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+td {
+  padding: 1rem 1.5rem;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-main);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Status badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+.badge-active { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+.badge-complete { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+.badge-rejected { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+.badge-neutral { background: rgba(255, 255, 255, 0.08); color: var(--text-muted); border: 1px solid var(--border); }
+
+/* Buttons styling */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-family: var(--font-title);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--text-dark);
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+}
+
+/* Simulator Grid View Split */
+.simulator-layout {
+  display: grid;
+  grid-template-columns: 1fr 480px;
+  gap: 1.5rem;
+  height: calc(100vh - 160px);
+}
+
+.registry-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+/* SLACK CLIENT SIMULATOR STYLING */
+.slack-client {
+  display: flex;
+  flex-direction: column;
+  background: var(--slack-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  height: 100%;
+}
+
+.slack-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--slack-sidebar);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.slack-header-circle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.slack-close { background: #ff5f56; }
+.slack-min { background: #ffbd2e; }
+.slack-max { background: #27c93f; }
+
+.slack-header-title {
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.slack-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100% - 37px);
+}
+
+/* Slack Sidebar */
+.slack-sidebar-nav {
+  width: 160px;
+  background: var(--slack-sidebar);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.slack-org-name {
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-family: var(--font-title);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slack-section-title {
+  padding: 0.75rem 1rem 0.25rem 1rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.slack-channel-list {
+  list-style: none;
+}
+
+.slack-channel-item {
+  padding: 0.35rem 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: background 0.15s ease;
+}
+
+.slack-channel-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.slack-channel-item.active {
+  background: var(--slack-active-channel);
+  color: #fff;
+}
+
+.slack-channel-item.active:hover {
+  background: var(--slack-active-channel);
+}
+
+.slack-chat-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--slack-bg);
+}
+
+.slack-chat-header {
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.slack-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Message layouts */
+.slack-message {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.slack-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  background: #3f0e40;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  font-family: var(--font-title);
+  flex-shrink: 0;
+}
+
+.slack-avatar.bot {
+  background: #e2e8f0;
+  color: #1a202c;
+}
+
+.slack-msg-content {
+  flex: 1;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--slack-text);
+}
+
+.slack-msg-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+
+.slack-msg-author {
+  font-weight: 700;
+  color: #fff;
+}
+
+.slack-msg-bot-tag {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.1rem 0.25rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.slack-msg-time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* Block Kit Attachment */
+.slack-block-kit {
+  margin-top: 0.5rem;
+  border-left: 4px solid var(--primary);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.75rem 1rem;
+  border-radius: 0 4px 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 100%;
+}
+
+.slack-bk-section {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.slack-bk-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.slack-bk-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.slack-btn {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #2a2d31;
+  color: #fff;
+  transition: all 0.15s ease;
+}
+
+.slack-btn:hover {
+  background: #3a3d42;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.slack-btn-primary {
+  background: #007a5a;
+  color: #fff;
+  border: none;
+}
+.slack-btn-primary:hover {
+  background: #148567;
+}
+
+.slack-btn-danger {
+  background: #b32d3a;
+  color: #fff;
+  border: none;
+}
+.slack-btn-danger:hover {
+  background: #c73847;
+}
+
+/* Chat Input Bar */
+.slack-input-container {
+  padding: 1rem;
+  background: var(--slack-bg);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.slack-input-box {
+  display: flex;
+  align-items: center;
+  background: #222529;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  gap: 0.5rem;
+}
+
+.slack-input-box:focus-within {
+  border-color: var(--text-muted);
+}
+
+.slack-input-field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 0.85rem;
+  font-family: var(--font-sans);
+  outline: none;
+}
+
+.slack-send-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+}
+
+.slack-send-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+/* SLACK MODAL OVERLAY */
+.slack-modal-overlay {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 50;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+}
+
+.slack-modal {
+  background: #1a1d21;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 90%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  max-height: 85%;
+  animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.slack-modal-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.slack-modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  font-family: var(--font-title);
+}
+
+.slack-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.25rem;
+}
+
+.slack-modal-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.slack-modal-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* Mock Block Kit Inputs inside Modal */
+.slack-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.slack-input-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.slack-input-control {
+  background: #222529;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  color: #fff;
+  font-size: 0.85rem;
+  width: 100%;
+  outline: none;
+  font-family: var(--font-sans);
+}
+
+.slack-input-control:focus {
+  border-color: var(--primary);
+}
+
+.slack-input-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.5rem;
+}
+
+/* Registry Side Cards styling */
+.registry-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.registry-card:hover, .registry-card.selected {
+  border-color: var(--primary-focus);
+  background: var(--surface-hover);
+}
+
+.registry-card.selected {
+  box-shadow: 0 0 10px rgba(79, 179, 191, 0.1);
+}
+
+.reg-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.reg-card-purpose {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.reg-card-details {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* PRINT EXPORT CONTAINER & TEMPLATES STYLE */
+#print-section {
+  display: none;
+  background: #fff;
+  color: #000;
+  width: 100%;
+}
+
+.print-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  background: rgba(255,255,255,0.02);
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.print-tab {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.print-tab.active {
+  background: var(--primary);
+  color: var(--text-dark);
+}
+
+/* Styling for Form Viewer container in browser */
+.form-view-container {
+  background: #fff;
+  color: #000;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 10px 35px rgba(0,0,0,0.5);
+  max-width: 820px;
+  margin: 0 auto;
+  min-height: 1050px;
+  font-family: 'Inter', Arial, sans-serif;
+  overflow: auto;
+}
+
+/* D-TREE A4 EXACT PDF REPLICATION STYLES */
+.pdf-page {
+  background: #ffffff;
+  color: #333333;
+  line-height: 1.4;
+  font-size: 11pt;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.pdf-header {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+  border-bottom: 3px solid #4fb3bf;
+  padding-bottom: 15px;
+  margin-bottom: 25px;
+}
+
+.pdf-logo {
+  width: 65px;
+  height: 65px;
+}
+
+.pdf-title-container {
+  text-align: right;
+}
+
+.pdf-title {
+  font-family: var(--font-title);
+  font-size: 20pt;
+  font-weight: 700;
+  color: #1a202c;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pdf-form-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.pdf-meta-box {
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  padding: 10px 12px;
+  background: #f7fafc;
+}
+
+.pdf-meta-label {
+  font-size: 8pt;
+  text-transform: uppercase;
+  color: #718096;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.pdf-meta-value {
+  font-size: 11pt;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.pdf-section-title {
+  font-size: 11pt;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pdf-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 25px;
+}
+
+.pdf-table th {
+  background: #edf2f7;
+  color: #2d3748;
+  font-size: 9pt;
+  font-weight: 700;
+  border: 1px solid #cbd5e0;
+  padding: 8px 10px;
+  text-transform: uppercase;
+}
+
+.pdf-table td {
+  border: 1px solid #cbd5e0;
+  padding: 8px 10px;
+  font-size: 10pt;
+  color: #2d3748;
+}
+
+.pdf-table tr.total-row td {
+  font-weight: 700;
+  background: #edf2f7;
+}
+
+.pdf-signature-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-top: 40px;
+}
+
+.pdf-sig-box {
+  border-top: 1.5px solid #718096;
+  padding-top: 8px;
+  font-size: 9.5pt;
+  color: #4a5568;
+}
+
+.pdf-signature-image {
+  font-family: 'Brush Script MT', cursive, sans-serif;
+  font-size: 24pt;
+  color: #1a365d;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  padding-left: 20px;
+  margin-bottom: -5px;
+}
+
+.pdf-guideline {
+  font-size: 7.5pt;
+  color: #718096;
+  line-height: 1.3;
+  margin-top: 25px;
+  border-left: 3px solid #cbd5e0;
+  padding-left: 10px;
+}
+
+/* Print View Specific Overrides */
+@media print {
+  body {
+    background: #fff !important;
+    background-image: none !important;
+    color: #000 !important;
+  }
+  
+  header, 
+  .app-sidebar, 
+  .app-content > *:not(#form-export-view),
+  .view-header,
+  .print-tabs,
+  .print-actions-btn {
+    display: none !important;
+  }
+
+  .app-content {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  #form-export-view {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .form-view-container {
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    background: transparent !important;
+  }
+
+  .pdf-page {
+    page-break-after: always;
+    page-break-inside: avoid;
+  }
+
+  .pdf-meta-box {
+    background: #ffffff !important;
+    border: 1px solid #a0aec0 !important;
+  }
+
+  .pdf-table th {
+    background: #f7fafc !important;
+    border: 1px solid #a0aec0 !important;
+  }
+  
+  .pdf-table td {
+    border: 1px solid #a0aec0 !important;
+  }
+}
