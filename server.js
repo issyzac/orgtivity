@@ -7,6 +7,15 @@ const { v4: uuidv4 } = require('uuid');
 // Load environment variables
 dotenv.config();
 
+// Catch global unhandled promise rejections and uncaught exceptions to prevent crashes on Railway
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('⚠️ Uncaught Exception thrown:', err);
+});
+
 const dbManager = require('./db-manager');
 const slackHandlers = require('./slack-handlers');
 
@@ -73,11 +82,23 @@ async function getChannelId(client, defaultName, envVarValue) {
   return defaultName;
 }
 
+// Check if credentials are placeholder values
+const isPlaceholder = (str) => {
+  if (!str) return true;
+  const s = str.toLowerCase();
+  return s.includes('your-') || s.includes('placeholder') || s.trim() === '';
+};
+
 // 1. REAL SLACK INTEGRATION SETUP (if credentials are provided)
 let boltApp = null;
 let receiver = null;
 
-if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_SIGNING_SECRET) {
+if (
+  process.env.SLACK_BOT_TOKEN && 
+  process.env.SLACK_SIGNING_SECRET &&
+  !isPlaceholder(process.env.SLACK_BOT_TOKEN) &&
+  !isPlaceholder(process.env.SLACK_SIGNING_SECRET)
+) {
   try {
     const { App, ExpressReceiver } = require('@slack/bolt');
     receiver = new ExpressReceiver({
